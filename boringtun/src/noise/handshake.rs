@@ -152,7 +152,7 @@ fn aead_chacha20_open_inner<'in_out>(
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 /// This struct represents a 12 byte [Tai64N](https://cr.yp.to/libtai/tai64.html) timestamp
 struct Tai64N {
     secs: u64,
@@ -213,12 +213,6 @@ impl Tai64N {
         //}
 
         Ok(Tai64N { secs, nano })
-    }
-
-    /// Check if this timestamp represents a time that is chronologically after the time represented
-    /// by the other timestamp
-    pub fn after(&self, other: &Tai64N) -> bool {
-        (self.secs > other.secs) || ((self.secs == other.secs) && (self.nano > other.nano))
     }
 }
 
@@ -535,7 +529,7 @@ impl Handshake {
         aead_chacha20_open(&mut timestamp, &key, 0, packet.encrypted_timestamp, &hash)?;
 
         let timestamp = Tai64N::parse(&timestamp)?;
-        if !timestamp.after(&self.last_handshake_timestamp) {
+        if timestamp < self.last_handshake_timestamp {
             // Possibly a replay
             return Err(WireGuardError::WrongTai64nTimestamp);
         }
